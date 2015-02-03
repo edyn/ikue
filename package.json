@@ -1,6 +1,6 @@
 {
   "name": "ikue",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "A framework that allows worker scheduling and job dispatch through an amqp broker (i.e. RabbitMQ)",
   "main": "index.js",
   "scripts": {
