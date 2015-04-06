@@ -31,10 +31,6 @@ var amqpManager = new RabbitManager({
 });
 
 var currentVhost; 
-var EventBus = require('../lib/event_bus');
-var app1Bus;
-var app1Bus2;
-var app2Bus;
 
 var queueMgr;
 var workQueue1;
@@ -97,10 +93,6 @@ describe('RabbitMq Manager', function () {
 
   beforeEach(function(done){
 
-    app1Bus = new EventBus("App1 Bus");
-    app1Bus2 = new EventBus("App1 Bus2");
-    app2Bus = new EventBus("App2 Bus");
-
     queueMgr = new WorkQueueMgr({
       component: 'App1', 
       amqp: {
@@ -109,10 +101,10 @@ describe('RabbitMq Manager', function () {
       name: 'default'
     });
 
-    workQueue1 = queueMgr.createQueue('Queue1', app1Bus);
+    workQueue1 = queueMgr.createQueue('Queue1');
     workQueue1.triggers = queue1Triggers;
 
-    workQueue2 = queueMgr.createQueue('Queue2', app1Bus2);
+    workQueue2 = queueMgr.createQueue('Queue2');
     workQueue2.triggers = queue2Triggers;
 
     // Reset/create a vhost for out tests

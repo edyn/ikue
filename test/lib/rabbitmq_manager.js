@@ -163,7 +163,6 @@ Vhost.prototype.getQueueContents = function(queue, options, done){
     "truncate":50000
   };
 
-  console.log(url)
   var optionsParam = _.defaults(options, defaultOpts);
 
   rest.postJson(url, 
