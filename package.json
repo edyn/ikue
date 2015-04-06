@@ -21,12 +21,12 @@
     "lodash": "^3.0.0",
     "merge": "^1.2.0",
     "node-uuid": "^1.4.2",
-    "vasync": "^1.6.0"
+    "vasync": "^1.6.0",
+    "restler": "^3.2.2"
   },
   "devDependencies": {
     "chai": "^1.9.2",
     "mocha": "^1.21.4",
-    "restler": "^3.2.2",
     "sinon": "^1.10.3",
     "sinon-chai": "^2.6.0"
   },

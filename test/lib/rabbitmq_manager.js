@@ -35,7 +35,6 @@ function wrapOnComplete(done, statusCodes){
     }
 
     if (!_.contains(positiveStatusCode, response.statusCode)) {
-      console.log(response);
       done(new Error('Invalid status code : '+response.statusCode), response);
       
       return;
@@ -164,6 +163,7 @@ Vhost.prototype.getQueueContents = function(queue, options, done){
     "truncate":50000
   };
 
+  console.log(url)
   var optionsParam = _.defaults(options, defaultOpts);
 
   rest.postJson(url, 
