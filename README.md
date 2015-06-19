@@ -1,4 +1,4 @@
-AMQP Based work dispatching
+AMQP-based work dispatching
 ===================
 
 **ikue** is a job dispatching library built on top of [RabbitMQ](http://rabbitmq.com) and [nodejs](https://nodejs.com).
@@ -10,12 +10,12 @@ AMQP Based work dispatching
 Features
 -------
  - Simple api to create and submit jobs
- - Retry failled job
- - Support two backoff strategy for failed job
+ - Retry failed jobs
+ - Support two backoff strategies for failed job
    - *'fixed'*: will retry the job at a fixed interval
-   - *''exponential*: will retry failed job doubling the wait time after each failure.
- - Pluggable **logger**: By default ikue log to *stdout* but you can easily plug your own logger.
- - Selective job reception: If you don't want to receive jobs with a specific name in your *workQueue*, you can selectively specify a whitelist.
+   - *'exponential'*: will retry failed job doubling the wait time after each failure.
+ - Pluggable **logger**: By default ikue log to *stdout* but you can easily plug in your own logger.
+ - Selective job reception: If you only want to receive jobs with a specific name in your *workQueue*, you can selectively specify a whitelist.
 
 Requirements
 -------
@@ -80,9 +80,9 @@ initializing ikue consist of creating a *WorkQueueManager* and creating at least
 		
 		 The *url* is the connection string containing all the credential to access the RabbitMQ server.
 		  
-      * *component*: Use this field to compartmentalize different deployment unit (namely app) for the same project.
+      * *component*: Use this field to compartmentalize different deployment units (namely apps) for the same project.
 
-  * **WorkQueue:** To create a WorkQueue you just need to provide a *queueName*. A work queue is the actually the object you will be interacting with. Upon initialization you can configure a *workQueue* object to receive all jobs with specific names. This feature allows you to specify the list of *job name* it will be receiving.
+  * **WorkQueue:** To create a WorkQueue you just need to provide a *queueName*. A work queue is  actually the object you will be interacting with. Upon initialization you can configure a *workQueue* object to receive all jobs with specific names. This feature allows you to specify the list of *job name* it will be receiving.
 Right now you need to explicitly set this list. One of the upcoming feature is the ability to receive all jobs by default.
 
 Create and submit a Job
@@ -91,14 +91,14 @@ Create and submit a Job
 
 	// We create the job we want to send for processing.
 	// We need to provide the job a unique *name* and a hash of parameters.
-	var job = workQueue.createJob('say_hello', {name: "Diallo"})
+	var job = workQueue.createJob('say_hello', {name: "John Smith"})
 	  .maxRetry(30)
       .backoff('fixed')
       .delay(20000);
 
 	job.send();
 
-* *maxRetry(count)*: The maximum number of time this job will be retried in case of failure.
+* *maxRetry(count)*: The maximum number of times this job will be retried in case of failure.
 * *backoff(strategy)*: Which backoff strategy to use for failed jobs.
 
 
@@ -110,9 +110,9 @@ Receive and handle a Job
 		});
 		
 		// Will be called whenever there is a job named 'job_name' to be handled.
-		// @param contains the hash object that were sent with the job
-		// @param done is a callback function that should be called when the job complete.
-		//    passing it an error as first parameter will mark this job as failed.  
+		// @param contains the hash object that was sent with the job
+		// @param done is a callback function that should be called when the job is complete.
+		//    passing it an error as the first parameter will mark this job as failed.  
 		workQueue.on('job_name', function(params, done){
 		  // 
 		});
