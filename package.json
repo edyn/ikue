@@ -1,0 +1,38 @@
+{
+  "name": "ikue",
+  "version": "0.0.3",
+  "description": "A framework that allows worker scheduling and job dispatch through an amqp broker (i.e. RabbitMQ)",
+  "main": "index.js",
+  "scripts": {
+    "test": "make test"
+  },
+  "keywords": [
+    "queue",
+    "workers",
+    "messages",
+    "queue",
+    "amqp",
+    "rabbitmq"
+  ],
+  "author": "Diallo Bobo <bobo.diaraye@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "amqp": "^0.2.0",
+    "lodash": "^3.0.0",
+    "merge": "^1.2.0",
+    "node-uuid": "^1.4.2",
+    "vasync": "^1.6.0",
+    "restler": "^3.2.2"
+  },
+  "devDependencies": {
+    "chai": "^1.9.2",
+    "mocha": "^1.21.4",
+    "sinon": "^1.10.3",
+    "sinon-chai": "^2.6.0"
+  },
+  "bugs": "https://github.com/ecstasy2/ikue/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ecstasy2/ikue.git"
+  }
+}
