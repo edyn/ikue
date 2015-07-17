@@ -92,7 +92,7 @@ describe('RabbitMq Manager', function () {
   });
 
   beforeEach(function(done){
-
+    this.timeout(5000)
     queueMgr = new WorkQueueMgr({
       component: 'App1', 
       amqp: {
@@ -161,7 +161,11 @@ describe('RabbitMq Manager', function () {
           .delay(5000)
           .backoff('exponential')
           .priority('low')
-          .send();
+          .send(function(err){
+            if (err) {
+              done(err, null);
+            }
+          });
 
         TestHelper.waitForJobWithId(job.id, workQueue1, function(err, jobs){
           var headers = jobs[0].headers;
