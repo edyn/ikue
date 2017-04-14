@@ -35,7 +35,6 @@ function wrapOnComplete(done, statusCodes){
     }
 
     if (!_.contains(positiveStatusCode, response.statusCode)) {
-      console.log(response);
       done(new Error('Invalid status code : '+response.statusCode), response);
       
       return;

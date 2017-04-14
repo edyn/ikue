@@ -1,5 +1,10 @@
 'use strict';
 
+
+var TEST_VHOST = process.env.TEST_VHOST || 'test';
+process.env.AMQP_URL = process.env.AMQP_URL || "amqp://guest:guest@localhost:5672/" + TEST_VHOST
+
+
 var chai = require('chai'); // assertion library
 var expect = chai.expect;
 var assert = chai.assert;
@@ -11,13 +16,11 @@ var sinonChai = require("sinon-chai");
 chai.use(sinonChai);
 
 var WorkQueue = require('../lib/work_queue');
+var WorkQueueMgr = require('../lib/work_queue_mgr');
 
 var RabbitManager = require('./lib/rabbitmq_manager');
 
 var TestHelper = require('./lib/test_helper');
-
-
-var TEST_VHOST = process.env.TEST_VHOST || 'test-vhost';
 
 var amqpManager = new RabbitManager({
   url: 'http://localhost:15672/api/',
@@ -28,12 +31,15 @@ var amqpManager = new RabbitManager({
 });
 
 var currentVhost; 
-var EventBus = require('../lib/event_bus');
-var app1Bus;
-var app2Bus;
 
+var queueMgr;
 var workQueue1;
 var workQueue2;
+var workQueue3;
+
+var queue1Triggers = ['say_hello', 'say_hello2'];
+var queue2Triggers = ['say_hello', 'say_hello2'];
+var queue3Triggers = ['say_hello', 'say_hello3'];
 
 // Remove existing vhost and re-create it
 function resetVhost(done){
@@ -46,7 +52,6 @@ function resetVhost(done){
       amqpManager.createVhost(TEST_VHOST, function(err, vhost){
         // Asign the vhost so we can use it later
         currentVhost = vhost;
-
         callback(err, vhost);
       })
     }
@@ -76,35 +81,53 @@ function connectWorkQueue(queue, done){
 // "mocha" and "should" are installed correctly
 describe('RabbitMq Manager', function () {
 
-  afterEach(function(){
-    workQueue1.connection.disconnect();
-    workQueue2.connection.disconnect();
+  afterEach(function(done){
+    if (queueMgr.connected) {
+      queueMgr.connection.disconnect();
+      queueMgr.connection = null;
+      queueMgr = null;
+    }
+
+    done();
   });
 
   beforeEach(function(done){
-
-    app1Bus = new EventBus("App1 Bus");
-    app2Bus = new EventBus("App2 Bus");
-
-    workQueue1 = new WorkQueue(app1Bus, {
+    this.timeout(5000)
+    queueMgr = new WorkQueueMgr({
       component: 'App1', 
       amqp: {
         url: "amqp://guest:guest@localhost:5672/"+TEST_VHOST
-      }
+      },
+      name: 'default'
     });
 
-    workQueue2 = new WorkQueue(app2Bus,  {
-      component: 'App2', 
-      amqp: {
-        url: "amqp://guest:guest@localhost:5672/"+TEST_VHOST
-      }
-    });
+    workQueue1 = queueMgr.createQueue('Queue1');
+    workQueue1.triggers = queue1Triggers;
+
+    workQueue2 = queueMgr.createQueue('Queue2');
+    workQueue2.triggers = queue2Triggers;
 
     // Reset/create a vhost for out tests
     vasync.pipeline({
       'funcs': [
         function(_, callback){
           resetVhost(callback)
+        },
+
+        // Connect the manager
+        function(_, callback){
+          queueMgr.connect();
+          var onError = function(err){
+            callback(err);
+          };
+
+          var OnReady = function(){
+            callback(null);
+          };
+
+          queueMgr.once('ready', OnReady);
+
+          queueMgr.once('error', onError);
         },
 
         // Connect all work queues
@@ -138,7 +161,11 @@ describe('RabbitMq Manager', function () {
           .delay(5000)
           .backoff('exponential')
           .priority('low')
-          .send();
+          .send(function(err){
+            if (err) {
+              done(err, null);
+            }
+          });
 
         TestHelper.waitForJobWithId(job.id, workQueue1, function(err, jobs){
           var headers = jobs[0].headers;
@@ -178,7 +205,7 @@ describe('RabbitMq Manager', function () {
     it('When a component push a work, and the message queue is not connected, an error is returned', 
       function(done){
 
-        workQueue1.connection.disconnect();
+        queueMgr.connection.disconnect();
 
         workQueue1.connection.once('close', function(hadError){
           setImmediate(function(){
@@ -217,12 +244,13 @@ describe('RabbitMq Manager', function () {
         // Now submit the job
         job
           .delay(50000)
-          .maxRetry(5).send();
+          .maxRetry(5)
+          .send();
 
         // Wait few moment and verify that the job have been rescheduled
         // We verify that by polling the wait queue
         setTimeout(function(){
-          currentVhost.getQueueContents(workQueue1.waitQueueName, function(err, messages){
+          currentVhost.getQueueContents(workQueue1.retryQueueName, function(err, messages){
             _.each(messages, function(msg){
 
               if (msg.properties.headers.jobId == job.id) {
@@ -241,7 +269,7 @@ describe('RabbitMq Manager', function () {
               }
             });
           });
-        }, 20);
+        }, 1000);
 
     });
 
@@ -267,15 +295,15 @@ describe('RabbitMq Manager', function () {
         // Now submit the job
         job
           .delay(1)
-          .maxRetry(3).send();
+          .maxRetry(4).send();
 
         // Wait few moment and verify that the job have been rescheduled
         // We verify that by polling the wait queue
         setTimeout(function(){
 
           // Should have called the worker once for every retry
-          expect(failingWorker).to.have.been.callCount(4);
-          expect(onNewMessageSpy).to.have.been.callCount(4);
+          expect(failingWorker).to.have.been.callCount(5);
+          expect(onNewMessageSpy).to.have.been.callCount(5);
 
           // The retry should have reached the other worker once because it succeed
           expect(onNewMessageQueue2).to.have.been.callCount(1)
@@ -289,8 +317,8 @@ describe('RabbitMq Manager', function () {
           expect(headers.priority).to.be.eql(job.priority());
           expect(headers.backoff).to.be.eql(job.backoff());
           expect(headers.worker_id).to.be.eql('say_hello');
-          expect(headers.max_attempts).to.be.eql(3);
-          expect(headers.made_attempts).to.be.eql(3);
+          expect(headers.max_attempts).to.be.eql(4);
+          expect(headers.made_attempts).to.be.eql(4);
 
           currentVhost.getQueueContents(workQueue1.failedQueueName, function(err, messages){
 
@@ -301,7 +329,7 @@ describe('RabbitMq Manager', function () {
             done();
           });
 
-        }, 30);
+        }, 1500);
 
     });
 
